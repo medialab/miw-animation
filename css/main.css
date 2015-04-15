@@ -101,7 +101,7 @@ body{
     font-family: 'Yanone Kaffeesatz', sans-serif;
     padding: 12px;
 }
-.animation{
+#animation{
     width: 1000px;
     height: 500px;
     border: 1px solid #DDD;
