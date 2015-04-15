@@ -106,7 +106,20 @@ body{
     height: 500px;
     border: 1px solid #DDD;
 }
-
+#settings{
+    padding-top: 12px;
+}
+#settings div{
+    display: inline-block;
+    height: 40px;
+    margin-right: 12px;
+}
+#settings div.date-selector.active{
+    background-color: #000;
+}
+footer{
+    margin-top: 100px;
+}
 
 
 

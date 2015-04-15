@@ -6,7 +6,7 @@
   d3.csv(url, function(error, csv){
     if(error) return console.warn(error)
     
-    visualize(csv)    
+    visualize(csv)
   })
 
   function visualize(data){
@@ -16,6 +16,9 @@
     var padding = 2
       , personRadius = 6
       , maxRadius = 100
+      , dates = d3.keys(data[0]).filter(function(d,i){return i>0})
+      , initialDate = 'date1'
+      , currentDate = initialDate
 
     var tables = {}
     data.forEach(function(item,i){
@@ -25,10 +28,12 @@
           tables[table] = (tables[table] || 0) + 1
         }
       }
-      item.x = 0
-      item.y = 0
+      item.x = Math.random() * document.querySelector('#animation').offsetWidth
+      item.y = Math.random() * document.querySelector('#animation').offsetHeight
       item.radius = personRadius
     })
+
+    createButtons()
 
     // Inspired by: view-source:http://projects.delimited.io/experiments/force-bubbles/
     
@@ -50,7 +55,17 @@
 
     var force = d3.layout.force()
 
-    draw('date1')
+    window.switchTo = function(arrangement){
+      currentDate = arrangement
+      var divs = document.querySelectorAll('#settings div.date-selector')
+      for(i in divs){
+        divs[i].className = 'date-selector'
+      }
+      document.querySelector('#'+arrangement).className = 'date-selector active'
+      draw(arrangement)
+    }
+
+    window.switchTo(initialDate)
 
     function draw (arrangement) {
       var centers = getCenters(arrangement, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight);
@@ -71,8 +86,8 @@
       for(i in tables){
         centers[i] = {
             name: i
-          , x: count%columns * (width / columns)
-          , y: Math.floor(count/columns) * (height / Math.floor(tablesCount / columns))
+          , x: (0.5 + count%columns) * (width / columns)
+          , y: (0.5 + Math.floor(count/columns)) * (height / Math.ceil(tablesCount / columns))
           }
         count++
       }
@@ -119,6 +134,19 @@
           return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
         });
       };
+    }
+
+    function createButtons(){
+      dates.forEach(function(date){
+          var div = document.createElement('div')
+
+          div.innerHTML = '<button onClick="switchTo(\''+date+'\')">'+date+'</button>'
+          div.id = date
+          div.className = "date-selector"
+          document.querySelector('#settings').appendChild(div)
+
+          console.log(div)
+      })
     }
 
   }
