@@ -14,8 +14,9 @@
     window.data = data
 
     var padding = 2
-      , personRadius = 6
-      , maxRadius = 100
+      , personRadius = 5
+      , tableRadius = 30
+      , maxRadius = 10
       , dates = d3.keys(data[0]).filter(function(d,i){return i>0})
       , initialDate = 'date1'
       , currentDate = initialDate
@@ -41,7 +42,20 @@
         .attr("width", document.querySelector('#animation').offsetWidth)
         .attr("height", document.querySelector('#animation').offsetHeight)
 
-    var nodes = svg.selectAll("circle")
+    // Tables
+    var centers = getCenters(null, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight)
+    var tableNodes = svg.selectAll("circle.table")
+      .data(d3.keys(tables))
+    tableNodes.enter().append("circle")
+        .attr("class", "table")
+        .attr("cx", function (d) { return centers[d].x })
+        .attr("cy", function (d) { return centers[d].y })
+        .attr("r", tableRadius)
+        .attr("fill", 'none')
+        .attr("stroke", '#000')
+
+    // Persons
+    var nodes = svg.selectAll("circle.node")
         .data(data)
 
     nodes.enter().append("circle")
