@@ -14,6 +14,8 @@
     window.data = data
 
     var columns = 10
+      , width = document.querySelector('#animation').offsetWidth
+      , height = document.querySelector('#animation').offsetHeight
       , padding = 2
       , personRadius = 5
       , tableRadius = 30
@@ -24,43 +26,59 @@
       , initialDate = 'date1'
       , currentDate = initialDate
       , playStatus = false
+      , nodesData // Persons + Tables
+      , linksData
+      , tables
+      , tables_index = {}
 
-    var tables = {}
+    // Init nodes and tables
     data.forEach(function(item,i){
       for(j in item){
         if(j != "person"){
           var table = item[j]
-          tables[table] = (tables[table] || 0) + 1
+          if(tables_index[table])
+            tables_index[table].count++
+          else
+            tables_index[table] = {count: 1}
         }
       }
-      item.x = Math.random() * document.querySelector('#animation').offsetWidth
-      item.y = Math.random() * document.querySelector('#animation').offsetHeight
+      item.x = Math.random() * width
+      item.y = Math.random() * height
       item.radius = personRadius
     })
 
+    tables = d3.keys(tables_index)
+
+    tables.forEach(function(table, i){
+      tables_index[table].x = (0.5 + i%columns) * (width / columns)
+      tables_index[table].y = (0.5 + Math.floor(i/columns)) * (height / Math.ceil(tables.length / columns))
+      tables_index[table].radius = 15
+      tables_index[table].fixed = true
+    })
+    
     createButtons()
 
     // Inspired by: view-source:http://projects.delimited.io/experiments/force-bubbles/
     
     var svg = d3.select("#animation").append("svg")
-        .attr("width", document.querySelector('#animation').offsetWidth)
-        .attr("height", document.querySelector('#animation').offsetHeight)
+        .attr("width", width)
+        .attr("height", height)
 
     // Tables
-    var centers = getCenters(null, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight)
     var tableNodes = svg.selectAll("circle.table")
-      .data(d3.keys(tables))
+      .data(tables)
     tableNodes.enter().append("circle")
         .attr("class", "table")
-        .attr("cx", function (d) { return centers[d].x })
-        .attr("cy", function (d) { return centers[d].y })
+        .attr("cx", function (d) { return tables_index[d].x })
+        .attr("cy", function (d) { return tables_index[d].y })
         .attr("r", tableRadius)
         .attr("fill", 'none')
         .attr("stroke", '#000')
 
-    // Persons
+    // Visual elements
+    nodesData = data.concat(tables.map(function(table){return tables_index[table]}))
     var nodes = svg.selectAll("circle.node")
-        .data(data)
+        .data(nodesData)
 
     nodes.enter().append("circle")
         .attr("class", "node")
@@ -73,16 +91,17 @@
 
     var force = d3.layout.force()
       .friction(0.5)
-      .nodes(data)
-    
-    window.switchTo = function(arrangement){
-      currentDate = arrangement
+      .nodes(nodesData)
+      .links(linksData)
+
+    window.switchTo = function(date){
+      currentDate = date
       var divs = document.querySelectorAll('#settings div.date-selector')
       for(i in divs){
         divs[i].className = 'date-selector'
       }
-      document.querySelector('#'+arrangement).className = 'date-selector active'
-      draw(arrangement)
+      document.querySelector('#'+date).className = 'date-selector active'
+      draw(date)
     }
 
     window.switchTo(initialDate)
@@ -138,43 +157,23 @@
       }
     }
 
-    function draw (arrangement) {
-      var centers = getCenters(arrangement, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight)
-      force.on("tick", tick(centers, arrangement))
+    function draw (date) {
+      force.on("tick", tick(date))
       force.start()
     }
 
-    function getCenters(arrangement, width, height){
-
-      // Note: for now, table positions do not depend on arrangements
-
-      var centers = {}
-        , tablesCount = d3.keys(tables).length
-        , count = 0
-
-      for(i in tables){
-        centers[i] = {
-            name: i
-          , x: (0.5 + count%columns) * (width / columns)
-          , y: (0.5 + Math.floor(count/columns)) * (height / Math.ceil(tablesCount / columns))
-          }
-        count++
-      }
-
-      return centers;
-    }
-
-    function tick (centers, arrangement) {
+    function tick (date) {
       return function (e) {
-        data.forEach(function(item, i){
-          var value = item[arrangement] 
-          item.x += ((centers[value].x) - item.x) * e.alpha;
-          item.y += ((centers[value].y) - item.y) * e.alpha;
-        })
+        // data.forEach(function(item, i){
+        //   var table = item[date]
+        //   item.x += ((tables_index[table].x) - item.x) * e.alpha;
+        //   item.y += ((tables_index[table].y) - item.y) * e.alpha;
+        // })
 
         nodes//.each(collide(.11))
           .attr("cx", function (d) { return d.x; })
           .attr("cy", function (d) { return d.y; });
+
       }
     }
 
