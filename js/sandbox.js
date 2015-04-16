@@ -16,7 +16,7 @@
     var columns = 10
       , width = document.querySelector('#animation').offsetWidth
       , height = document.querySelector('#animation').offsetHeight
-      , padding = 2
+      , padding = 5
       , personRadius = 5
       , tableRadius = 30
       , maxRadius = 10
@@ -26,8 +26,8 @@
       , initialDate = 'date1'
       , currentDate = initialDate
       , playStatus = false
-      , nodesData // Persons + Tables
-      , linksData
+      , nodesData = []
+      , linksData = []
       , tables
       , tables_index = {}
 
@@ -42,9 +42,6 @@
             tables_index[table] = {count: 1}
         }
       }
-      item.x = Math.random() * width
-      item.y = Math.random() * height
-      item.radius = personRadius
     })
 
     tables = d3.keys(tables_index)
@@ -52,19 +49,15 @@
     tables.forEach(function(table, i){
       tables_index[table].x = (0.5 + i%columns) * (width / columns)
       tables_index[table].y = (0.5 + Math.floor(i/columns)) * (height / Math.ceil(tables.length / columns))
-      tables_index[table].radius = 15
-      tables_index[table].fixed = true
     })
     
     createButtons()
 
-    // Inspired by: view-source:http://projects.delimited.io/experiments/force-bubbles/
-    
     var svg = d3.select("#animation").append("svg")
         .attr("width", width)
         .attr("height", height)
 
-    // Tables
+    // Draw tables
     var tableNodes = svg.selectAll("circle.table")
       .data(tables)
     tableNodes.enter().append("circle")
@@ -75,8 +68,29 @@
         .attr("fill", 'none')
         .attr("stroke", '#000')
 
-    // Visual elements
-    nodesData = data.concat(tables.map(function(table){return tables_index[table]}))
+    // Nodes of the network (including persons and tables)
+    data.forEach(function(item, i){
+
+      nodesData.push({
+        x: Math.random() * width
+      , y: Math.random() * height
+      , radius: personRadius
+      , fixed: false
+      })
+
+    })
+
+    tables.forEach(function(table){
+      nodesData.push({
+        x: tables_index[table].x
+      , y: tables_index[table].y
+      , radius: 10
+      , fixed: true
+      })
+    })
+
+    updateLinks(initialDate)
+
     var nodes = svg.selectAll("circle.node")
         .data(nodesData)
 
@@ -90,12 +104,17 @@
         // .on("mouseout", function (d) { removePopovers(); })
 
     var force = d3.layout.force()
-      .friction(0.5)
+      .friction(.2)
+      .gravity(0)
+      .linkStrength(2)
+      .chargeDistance(20)
       .nodes(nodesData)
       .links(linksData)
 
     window.switchTo = function(date){
       currentDate = date
+      updateLinks(currentDate)
+      force.links(linksData)
       var divs = document.querySelectorAll('#settings div.date-selector')
       for(i in divs){
         divs[i].className = 'date-selector'
@@ -170,7 +189,7 @@
         //   item.y += ((tables_index[table].y) - item.y) * e.alpha;
         // })
 
-        nodes//.each(collide(.11))
+        nodes.each(collide(.11))
           .attr("cx", function (d) { return d.x; })
           .attr("cy", function (d) { return d.y; });
 
@@ -202,6 +221,16 @@
           return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1
         })
       }
+    }
+
+    function updateLinks(date){
+      linksData = []
+      data.forEach(function(item, i){
+        linksData.push({
+          source: i
+        , target: data.length + tables.indexOf(item[date])
+        })
+      })
     }
 
     function createButtons(){
