@@ -101,22 +101,37 @@ body{
     font-family: 'Yanone Kaffeesatz', sans-serif;
     padding: 12px;
 }
+
 #animation{
     width: 1000px;
     height: 500px;
     border: 1px solid #DDD;
 }
+
 #settings{
     padding-top: 12px;
 }
-#settings div{
+
+#settings div.date-selector, #settings div#play-stop-div{
     display: inline-block;
     height: 40px;
     margin-right: 12px;
 }
+
 #settings div.date-selector.active{
     background-color: #000;
 }
+
+#settings #play-stop-button{
+    width: 100px;
+}
+
+#play-stop-message{
+    font-weight: 200;
+    font-size: 24px;
+    height: 30px;
+}
+
 footer{
     margin-top: 100px;
 }

@@ -13,13 +13,17 @@
     
     window.data = data
 
-    var padding = 2
+    var columns = 10
+      , padding = 2
       , personRadius = 5
       , tableRadius = 30
       , maxRadius = 10
+      , animationTiming = 1200
+      , animationTimer
       , dates = d3.keys(data[0]).filter(function(d,i){return i>0})
       , initialDate = 'date1'
       , currentDate = initialDate
+      , playStatus = false
 
     var tables = {}
     data.forEach(function(item,i){
@@ -81,6 +85,47 @@
 
     window.switchTo(initialDate)
 
+    window.playStop = function(){
+      if(playStatus){
+        playStatus = false
+        document.querySelector('#play-stop-button').innerHTML = "PLAY"
+        document.querySelector('#play-stop-message').innerHTML = ""
+
+        // Clear timer
+        window.clearTimeout(animationTimer)
+
+      } else {
+        playStatus = true
+        document.querySelector('#play-stop-button').innerHTML = "STOP"
+        document.querySelector('#play-stop-message').innerHTML = "playing"
+
+        // Set timer
+        window.nextDate()
+        animationTimer = setInterval(nextDate, animationTiming)
+
+      }
+    }
+
+    window.nextDate = function(){
+      var nextFlag = false
+        , switchHappens = false
+
+      for(i in dates){
+        var date = dates[i]
+        if(nextFlag){
+          window.switchTo(date)
+          switchHappens = true
+          break;
+        }
+        if(date == currentDate){
+          nextFlag = true
+        }
+      }
+      if(!switchHappens){
+        window.playStop()
+      }
+    }
+
     function draw (arrangement) {
       var centers = getCenters(arrangement, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight);
       force.on("tick", tick(centers, arrangement));
@@ -92,8 +137,7 @@
 
       // Note: for now, table positions do not depend on arrangements
 
-      var columns = 8
-        , centers = {}
+      var centers = {}
         , tablesCount = d3.keys(tables).length
         , count = 0
 
@@ -158,8 +202,6 @@
           div.id = date
           div.className = "date-selector"
           document.querySelector('#settings').appendChild(div)
-
-          console.log(div)
       })
     }
 
