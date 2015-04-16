@@ -72,7 +72,9 @@
         // .on("mouseout", function (d) { removePopovers(); })
 
     var force = d3.layout.force()
-
+      .friction(0.5)
+      .nodes(data)
+    
     window.switchTo = function(arrangement){
       currentDate = arrangement
       var divs = document.querySelectorAll('#settings div.date-selector')
@@ -137,10 +139,9 @@
     }
 
     function draw (arrangement) {
-      var centers = getCenters(arrangement, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight);
-      force.on("tick", tick(centers, arrangement));
-      // labels(centers)
-      force.start();
+      var centers = getCenters(arrangement, document.querySelector('#animation').offsetWidth, document.querySelector('#animation').offsetHeight)
+      force.on("tick", tick(centers, arrangement))
+      force.start()
     }
 
     function getCenters(arrangement, width, height){
@@ -171,37 +172,37 @@
           item.y += ((centers[value].y) - item.y) * e.alpha;
         })
 
-        nodes.each(collide(.11))
+        nodes//.each(collide(.11))
           .attr("cx", function (d) { return d.x; })
           .attr("cy", function (d) { return d.y; });
       }
     }
 
     function collide(alpha) {
-      var quadtree = d3.geom.quadtree(data);
+      var quadtree = d3.geom.quadtree(data)
       return function (d) {
         var r = d.radius + maxRadius + padding,
             nx1 = d.x - r,
             nx2 = d.x + r,
             ny1 = d.y - r,
-            ny2 = d.y + r;
+            ny2 = d.y + r
         quadtree.visit(function(quad, x1, y1, x2, y2) {
           if (quad.point && (quad.point !== d)) {
             var x = d.x - quad.point.x,
                 y = d.y - quad.point.y,
                 l = Math.sqrt(x * x + y * y),
-                r = d.radius + quad.point.radius + padding;
+                r = d.radius + quad.point.radius + padding
             if (l < r) {
-              l = (l - r) / l * alpha;
-              d.x -= x *= l;
-              d.y -= y *= l;
-              quad.point.x += x;
-              quad.point.y += y;
+              l = (l - r) / l * alpha
+              d.x -= x *= l
+              d.y -= y *= l
+              quad.point.x += x
+              quad.point.y += y
             }
           }
-          return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
-        });
-      };
+          return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1
+        })
+      }
     }
 
     function createButtons(){
