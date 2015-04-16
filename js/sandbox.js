@@ -87,6 +87,9 @@
 
     window.playStop = function(){
       if(playStatus){
+
+        // STOP
+
         playStatus = false
         document.querySelector('#play-stop-button').innerHTML = "PLAY"
         document.querySelector('#play-stop-message').innerHTML = ""
@@ -95,12 +98,19 @@
         window.clearTimeout(animationTimer)
 
       } else {
+
+        // PLAY
+
         playStatus = true
         document.querySelector('#play-stop-button').innerHTML = "STOP"
         document.querySelector('#play-stop-message').innerHTML = "playing"
 
         // Set timer
-        window.nextDate()
+        if(currentDate == dates[0]){
+          window.nextDate()
+        } else {
+          window.switchTo(initialDate)
+        }
         animationTimer = setInterval(nextDate, animationTiming)
 
       }
