@@ -1,16 +1,14 @@
 
 
 ;(function(undefined){
-  var url = "data/source.csv"
 
-  d3.csv(url, function(error, csv){
-    if(error) return console.warn(error)
-    
-    visualize(csv)
-  })
+  var public_spreadsheet_url = '12Slk94URdI1jGPox8mmYGdDP--LluDJnk3k3-fDAQRs';
+
+  Tabletop.init( { key: public_spreadsheet_url,
+                   callback: visualize,
+                   simpleSheet: true } );
 
   function visualize(data){
-    
     window.data = data
 
     var columns = 10
