@@ -16,9 +16,10 @@
     var columns = 10
       , width = document.querySelector('#animation').offsetWidth
       , height = document.querySelector('#animation').offsetHeight
-      , padding = 5
-      , personRadius = 5
-      , tableRadius = 30
+      , padding = 6
+      , personRadius = 4
+      , tableHiddenRadius = 5
+      , tableDrawRadius = 36
       , maxRadius = 10
       , animationTiming = 1200
       , animationTimer
@@ -64,18 +65,18 @@
         .attr("class", "table")
         .attr("cx", function (d) { return tables_index[d].x })
         .attr("cy", function (d) { return tables_index[d].y })
-        .attr("r", tableRadius)
+        .attr("r", tableDrawRadius)
         .attr("fill", 'none')
         .attr("stroke", '#000')
 
     // Nodes of the network (including persons and tables)
     data.forEach(function(item, i){
-
       nodesData.push({
         x: Math.random() * width
       , y: Math.random() * height
       , radius: personRadius
       , fixed: false
+      , display: true
       })
 
     })
@@ -84,8 +85,9 @@
       nodesData.push({
         x: tables_index[table].x
       , y: tables_index[table].y
-      , radius: 10
+      , radius: tableHiddenRadius
       , fixed: true
+      , display: false
       })
     })
 
@@ -95,6 +97,7 @@
         .data(nodesData)
 
     nodes.enter().append("circle")
+        .filter(function(d){return d.display})
         .attr("class", "node")
         .attr("cx", function (d) { return d.x || 100 })
         .attr("cy", function (d) { return d.y || 100 })
@@ -107,7 +110,7 @@
       .friction(.2)
       .gravity(0)
       .linkStrength(2)
-      .chargeDistance(20)
+      .chargeDistance(10)
       .nodes(nodesData)
       .links(linksData)
 
@@ -183,12 +186,6 @@
 
     function tick (date) {
       return function (e) {
-        // data.forEach(function(item, i){
-        //   var table = item[date]
-        //   item.x += ((tables_index[table].x) - item.x) * e.alpha;
-        //   item.y += ((tables_index[table].y) - item.y) * e.alpha;
-        // })
-
         nodes.each(collide(.11))
           .attr("cx", function (d) { return d.x; })
           .attr("cy", function (d) { return d.y; });
@@ -197,7 +194,7 @@
     }
 
     function collide(alpha) {
-      var quadtree = d3.geom.quadtree(data)
+      var quadtree = d3.geom.quadtree(nodesData)
       return function (d) {
         var r = d.radius + maxRadius + padding,
             nx1 = d.x - r,
