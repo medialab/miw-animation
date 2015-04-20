@@ -16,7 +16,8 @@
       , height = document.querySelector('#animation').offsetHeight
       , padding = 6
       , personRadius = 4
-      , tableRadius = 36
+      , tableHiddenRadius = 5
+      , tableDrawRadius = 36
       , maxRadius = 10
       , maxDisplacement = 6
       , animationTiming = 1200
@@ -25,9 +26,10 @@
       , initialDate = 'date1'
       , currentDate = initialDate
       , playStatus = false
+      , nodesData = []
+      , linksData = []
       , tables
       , tables_index = {}
-      , tableObjects = []
 
     // Init nodes and tables
     data.forEach(function(item,i){
@@ -45,14 +47,8 @@
     tables = d3.keys(tables_index)
 
     tables.forEach(function(table, i){
-      var tableObj = tables_index[table]
-      tableObj.x = (0.5 + i%columns) * (width / columns)
-      tableObj.y = (0.5 + Math.floor(i/columns)) * (height / Math.ceil(tables.length / columns))
-      tableObj.radius = tableRadius
-      tableObj.weight = 1
-      tableObj.items = []
-      tableObj.force = d3.layout.force()
-      tableObjects.push(tableObj)
+      tables_index[table].x = (0.5 + i%columns) * (width / columns)
+      tables_index[table].y = (0.5 + Math.floor(i/columns)) * (height / Math.ceil(tables.length / columns))
     })
     
     createButtons()
@@ -68,11 +64,10 @@
         .attr("class", "table")
         .attr("cx", function (d) { return tables_index[d].x })
         .attr("cy", function (d) { return tables_index[d].y })
-        .attr("r", function (d) { return tables_index[d].radius })
+        .attr("r", tableDrawRadius)
         .attr("fill", 'none')
         .attr("stroke", '#000')
 
-    /*
     // Nodes of the network (including persons and tables)
     data.forEach(function(item, i){
       nodesData.push({
@@ -82,6 +77,7 @@
       , fixed: false
       , display: true
       })
+
     })
 
     tables.forEach(function(table){
@@ -93,55 +89,42 @@
       , display: false
       })
     })
-    */
 
     updateLinks(initialDate)
 
-    var tableNodes = svg.selectAll("circle.table")
-        .data(tableObjects)
+    var nodes = svg.selectAll("circle.node")
+        .data(nodesData)
 
-    tableNodes.enter().append("circle")
-        .attr("class", "table")
-        .attr("cx", function (d) { return d.x})
-        .attr("cy", function (d) { return d.y})
-        .attr("r", function (d) { return d.radius})
+    nodes.enter().append("circle")
+        .filter(function(d){return d.display})
+        .attr("class", "node")
+        .attr("cx", function (d) { return d.x || 100 })
+        .attr("cy", function (d) { return d.y || 100 })
+        .attr("r", function (d) { return d.radius || 10 })
         // .style("fill", function (d) { return fill(d.make); })
         // .on("mouseover", function (d) { showPopover.call(this, d); })
         // .on("mouseout", function (d) { removePopovers(); })
 
-    /*var force = d3.layout.force()
+    var force = d3.layout.force()
       .friction(.2)
       .gravity(0)
       .linkStrength(1.6)
       .chargeDistance(10)
       .nodes(nodesData)
       .links(linksData)
-      .on("tick", tick)*/
-
-    var tablesForce = d3.layout.force()
-      .friction(.7)
-      .size([width, height])
-      .nodes(tableObjects)
-      .on("tick", function(e){
-        tableNodes
-          .each(collide(.11, tableObjects))
-          .attr("cx", function (d) { return d.x })
-          .attr("cy", function (d) { return d.y })
-      })
+      .on("tick", tick)
 
     window.switchTo = function(date){
+      force.stop()      
       currentDate = date
-      
-      tablesForce.stop()      
-      
       updateLinks(currentDate)
-      // force.links(linksData)
+      force.links(linksData)
       var divs = document.querySelectorAll('#settings div.date-selector')
       for(i in divs){
         divs[i].className = 'date-selector'
       }
       document.querySelector('#'+date).className = 'date-selector active'
-      tablesForce.start()
+      force.resume().start()
     }
 
     window.switchTo(initialDate)
@@ -223,7 +206,7 @@
     
     }
 
-    function collide(alpha, nodesData) {
+    function collide(alpha) {
       var quadtree = d3.geom.quadtree(nodesData)
       return function (d) {
         var r = d.radius + maxRadius + padding,
@@ -251,49 +234,23 @@
     }
 
     function updateLinks(date){
-      // Items per table: rebuild
-      tables.forEach(function(table){
-        tables_index[table].items = []
-      })
-      data.forEach(function(item, i){
-        var table = item[date]
-        tables_index[table].items.push(i)
-      })
-
       linksData = []
-
-      // Build cliques
       data.forEach(function(item, i){
-        var table = item[date]
-        tables_index[table].items.forEach(function(item_index_1, i1){
-          tables_index[table].items.forEach(function(item_index_2, i2){
-            if(i1 < i2){
-              linksData.push({
-                source: item_index_1
-              , target: item_index_2
-              })
-            }
-          })
+        linksData.push({
+          source: i
+        , target: data.length + tables.indexOf(item[date])
         })
       })
-
-      // Link to table
-      // data.forEach(function(item, i){
-      //   linksData.push({
-      //     source: i
-      //   , target: data.length + tables.indexOf(item[date])
-      //   })
-      // })
     }
 
     function createButtons(){
       dates.forEach(function(date){
-        var div = document.createElement('div')
+          var div = document.createElement('div')
 
-        div.innerHTML = '<button onClick="switchTo(\''+date+'\')">'+date+'</button>'
-        div.id = date
-        div.className = "date-selector"
-        document.querySelector('#settings').appendChild(div)
+          div.innerHTML = '<button onClick="switchTo(\''+date+'\')">'+date+'</button>'
+          div.id = date
+          div.className = "date-selector"
+          document.querySelector('#settings').appendChild(div)
       })
     }
 
