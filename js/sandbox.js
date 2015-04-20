@@ -19,6 +19,7 @@
       , tableHiddenRadius = 5
       , tableDrawRadius = 36
       , maxRadius = 10
+      , maxDisplacement = 6
       , animationTiming = 1200
       , animationTimer
       , dates = d3.keys(data[0]).filter(function(d,i){return i>0})
@@ -107,12 +108,14 @@
     var force = d3.layout.force()
       .friction(.2)
       .gravity(0)
-      .linkStrength(2)
+      .linkStrength(1.6)
       .chargeDistance(10)
       .nodes(nodesData)
       .links(linksData)
+      .on("tick", tick)
 
     window.switchTo = function(date){
+      force.stop()      
       currentDate = date
       updateLinks(currentDate)
       force.links(linksData)
@@ -121,7 +124,7 @@
         divs[i].className = 'date-selector'
       }
       document.querySelector('#'+date).className = 'date-selector active'
-      draw(date)
+      force.resume().start()
     }
 
     window.switchTo(initialDate)
@@ -177,18 +180,30 @@
       }
     }
 
-    function draw (date) {
-      force.on("tick", tick(date))
-      force.start()
+    function tick(e) {
+      nodes
+        // .each(slowPace)
+        .each(collide(.11))
+        .attr("cx", function (d) { return d.x })
+        .attr("cy", function (d) { return d.y })
     }
 
-    function tick (date) {
-      return function (e) {
-        nodes.each(collide(.11))
-          .attr("cx", function (d) { return d.x; })
-          .attr("cy", function (d) { return d.y; });
+    function slowPace(n, i){
 
-      }
+      // NOTE: n.px and n.py cannot be trusted, so we use our own records
+    
+      n.prev_x = n.prev_x || n.x
+      n.prev_y = n.prev_y || n.y
+
+      var dist = Math.sqrt(Math.pow(n.x-n.prev_x, 2) + Math.pow(n.y-n.prev_y, 2))
+        , newd = Math.min(maxDisplacement, dist)
+
+      n.x = n.prev_x + ((dist>0) ? ((n.x - n.prev_x) * newd / dist) : (0))
+      n.y = n.prev_y + ((dist>0) ? ((n.y - n.prev_y) * newd / dist) : (0))
+
+      n.prev_x = n.x
+      n.prev_y = n.y
+    
     }
 
     function collide(alpha) {
