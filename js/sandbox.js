@@ -84,7 +84,6 @@
         .attr("cy", function (d) { return d.y})
         .attr("r", function (d) { return d.radius})
         .attr("fill", 'none')
-        .attr("stroke", '#000')
 
     // Draw individuals
     var individualsNodes = svg.selectAll("circle.individuals")
@@ -137,7 +136,25 @@
       tablesForce.stop()   
       
       updateDistribution(currentDate)
-      // force.links(linksData)
+      
+      if(tableNodes){
+        tableNodes.attr("stroke", function(d){
+            if(d.items.length > 3){
+              return '#000'
+            }
+            return '#999'
+          })
+      }
+
+      if(individualsNodes){
+        individualsNodes.attr("fill", function(d){
+            if(tables_index[d.table].items.length > 3){
+              return '#000'
+            }
+            return '#999'
+          })
+      }
+
       var divs = document.querySelectorAll('#settings div.date-selector')
       for(i in divs){
         divs[i].className = 'date-selector'
