@@ -103,8 +103,10 @@ body{
 }
 
 #animation{
-    width: 1000px;
-    height: 500px;
+    /*width: 1000px;*/
+    /*height: 500px;*/
+    width: 800px;
+    height: 600px;
     border: 1px solid #DDD;
 }
 

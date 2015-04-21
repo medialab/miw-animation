@@ -14,11 +14,10 @@
     var columns = 10
       , width = document.querySelector('#animation').offsetWidth
       , height = document.querySelector('#animation').offsetHeight
-      , padding = 6
-      , personRadius = 4
+      , padding = 8
       , tableRadius = 36
+      , individualRadius = 4
       , maxRadius = 10
-      , maxDisplacement = 6
       , animationTiming = 1200
       , animationTimer
       , dates = d3.keys(data[0]).filter(function(d,i){return i>0})
@@ -28,6 +27,18 @@
       , tables
       , tables_index = {}
       , tableObjects = []
+      , individualsObjects = data.map(function(item){
+          return  {
+                    x: 10 * Math.random() - 5
+                  , y: 10 * Math.random() - 5
+                  , radius: individualRadius
+                  , table: 1
+                  }
+        })
+
+    var svg = d3.select("#animation").append("svg")
+        .attr("width", width)
+        .attr("height", height)
 
     // Init nodes and tables
     data.forEach(function(item,i){
@@ -40,6 +51,7 @@
             tables_index[table] = {count: 1}
         }
       }
+
     })
 
     tables = d3.keys(tables_index)
@@ -50,53 +62,19 @@
       tableObj.y = (0.5 + Math.floor(i/columns)) * (height / Math.ceil(tables.length / columns))
       tableObj.radius = tableRadius
       tableObj.weight = 1
-      tableObj.items = []
       tableObj.force = d3.layout.force()
+        .friction(.1)
+        .gravity(1)
+        .charge(-300)
+
       tableObjects.push(tableObj)
     })
     
     createButtons()
 
-    var svg = d3.select("#animation").append("svg")
-        .attr("width", width)
-        .attr("height", height)
+    updateDistribution(initialDate)
 
     // Draw tables
-    var tableNodes = svg.selectAll("circle.table")
-      .data(tables)
-    tableNodes.enter().append("circle")
-        .attr("class", "table")
-        .attr("cx", function (d) { return tables_index[d].x })
-        .attr("cy", function (d) { return tables_index[d].y })
-        .attr("r", function (d) { return tables_index[d].radius })
-        .attr("fill", 'none')
-        .attr("stroke", '#000')
-
-    /*
-    // Nodes of the network (including persons and tables)
-    data.forEach(function(item, i){
-      nodesData.push({
-        x: Math.random() * width
-      , y: Math.random() * height
-      , radius: personRadius
-      , fixed: false
-      , display: true
-      })
-    })
-
-    tables.forEach(function(table){
-      nodesData.push({
-        x: tables_index[table].x
-      , y: tables_index[table].y
-      , radius: tableHiddenRadius
-      , fixed: true
-      , display: false
-      })
-    })
-    */
-
-    updateLinks(initialDate)
-
     var tableNodes = svg.selectAll("circle.table")
         .data(tableObjects)
 
@@ -105,42 +83,67 @@
         .attr("cx", function (d) { return d.x})
         .attr("cy", function (d) { return d.y})
         .attr("r", function (d) { return d.radius})
-        // .style("fill", function (d) { return fill(d.make); })
-        // .on("mouseover", function (d) { showPopover.call(this, d); })
-        // .on("mouseout", function (d) { removePopovers(); })
+        .attr("fill", 'none')
+        .attr("stroke", '#000')
 
-    /*var force = d3.layout.force()
-      .friction(.2)
-      .gravity(0)
-      .linkStrength(1.6)
-      .chargeDistance(10)
-      .nodes(nodesData)
-      .links(linksData)
-      .on("tick", tick)*/
+    // Draw individuals
+    var individualsNodes = svg.selectAll("circle.individuals")
+        .data(individualsObjects)
+
+    individualsNodes.enter().append("circle")
+        .attr("class", "individuals")
+        .attr("cx", function (d) { return d.x })
+        .attr("cy", function (d) { return d.y })
+        .attr("r", function (d) { return d.radius})
 
     var tablesForce = d3.layout.force()
       .friction(.7)
+      .charge(-150)
       .size([width, height])
       .nodes(tableObjects)
       .on("tick", function(e){
+
+        tables.forEach(function(table, i){
+          tables_index[table].force.start().alpha(tablesForce.alpha()).tick()
+        })
+
         tableNodes
-          .each(collide(.11, tableObjects))
+          .each(collide(.1, tableObjects))
           .attr("cx", function (d) { return d.x })
           .attr("cy", function (d) { return d.y })
+
+        individualsNodes
+          .each(function(d){
+            d.x += tables_index[d.table].x
+            d.y += tables_index[d.table].y
+          })
+          .each(collide(.1, individualsObjects))
+          .attr("cx", function (d) { return d.x })
+          .attr("cy", function (d) { return d.y })
+          .each(function(d){
+            d.x -= tables_index[d.table].x
+            d.y -= tables_index[d.table].y
+          })
+
+        tables.forEach(function(table, i){
+          tables_index[table].force.stop()
+        })
+
       })
 
     window.switchTo = function(date){
       currentDate = date
       
-      tablesForce.stop()      
+      tablesForce.stop()   
       
-      updateLinks(currentDate)
+      updateDistribution(currentDate)
       // force.links(linksData)
       var divs = document.querySelectorAll('#settings div.date-selector')
       for(i in divs){
         divs[i].className = 'date-selector'
       }
       document.querySelector('#'+date).className = 'date-selector active'
+
       tablesForce.start()
     }
 
@@ -197,32 +200,6 @@
       }
     }
 
-    function tick(e) {
-      nodes
-        // .each(slowPace)
-        .each(collide(.11))
-        .attr("cx", function (d) { return d.x })
-        .attr("cy", function (d) { return d.y })
-    }
-
-    function slowPace(n, i){
-
-      // NOTE: n.px and n.py cannot be trusted, so we use our own records
-    
-      n.prev_x = n.prev_x || n.x
-      n.prev_y = n.prev_y || n.y
-
-      var dist = Math.sqrt(Math.pow(n.x-n.prev_x, 2) + Math.pow(n.y-n.prev_y, 2))
-        , newd = Math.min(maxDisplacement, dist)
-
-      n.x = n.prev_x + ((dist>0) ? ((n.x - n.prev_x) * newd / dist) : (0))
-      n.y = n.prev_y + ((dist>0) ? ((n.y - n.prev_y) * newd / dist) : (0))
-
-      n.prev_x = n.x
-      n.prev_y = n.y
-    
-    }
-
     function collide(alpha, nodesData) {
       var quadtree = d3.geom.quadtree(nodesData)
       return function (d) {
@@ -250,40 +227,30 @@
       }
     }
 
-    function updateLinks(date){
+    function updateDistribution(date){
       // Items per table: rebuild
       tables.forEach(function(table){
-        tables_index[table].items = []
+        var tableObj = tables_index[table]
+
+        tableObj.items = []
+        tableObj.force.nodes(tableObj.items)
       })
+
       data.forEach(function(item, i){
         var table = item[date]
-        tables_index[table].items.push(i)
+          , tableObj = tables_index[table]
+          , oldtable = individualsObjects[i].table
+          , oldtableObj = tables_index[oldtable]
+          , individualsObject = individualsObjects[i]
+
+        individualsObject.table = table
+        individualsObject.x -= tableObj.x - oldtableObj.x
+        individualsObject.y -= tableObj.y - oldtableObj.y
+        
+        tableObj.items.push(individualsObjects[i])
+        
       })
 
-      linksData = []
-
-      // Build cliques
-      data.forEach(function(item, i){
-        var table = item[date]
-        tables_index[table].items.forEach(function(item_index_1, i1){
-          tables_index[table].items.forEach(function(item_index_2, i2){
-            if(i1 < i2){
-              linksData.push({
-                source: item_index_1
-              , target: item_index_2
-              })
-            }
-          })
-        })
-      })
-
-      // Link to table
-      // data.forEach(function(item, i){
-      //   linksData.push({
-      //     source: i
-      //   , target: data.length + tables.indexOf(item[date])
-      //   })
-      // })
     }
 
     function createButtons(){
